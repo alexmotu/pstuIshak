@@ -211,188 +211,140 @@
             </div>
         </div>
     </div>
-
-    <script>
-        // Инициализация приложения после загрузки DOM
-        document.addEventListener('DOMContentLoaded', function() {
-            // Инициализация Telegram Web App
-            let tg = window.Telegram.WebApp;
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.setHeaderColor('#667eea');
+        tg.setBackgroundColor('#667eea');
+        
+        const attendanceBtn = document.getElementById('attendanceBtn');
+        const locationStatus = document.getElementById('locationStatus');
+        const presentCount = document.getElementById('presentCount');
+        const absentCount = document.getElementById('absentCount');
+        
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = message;
+            notification.style.background = type === 'error' ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.8)';
             
-            // Расширяем на весь экран и настраиваем цвета
-            tg.expand();
-            tg.setHeaderColor('#667eea');
-            tg.setBackgroundColor('#667eea');
+            document.body.appendChild(notification);
             
-            // Получаем данные пользователя
-            const user = tg.initDataUnsafe.user;
-            console.log('Данные пользователя:', user);
-            
-            // Элементы интерфейса
-            const attendanceBtn = document.getElementById('attendanceBtn');
-            const locationStatus = document.getElementById('locationStatus');
-            const presentCount = document.getElementById('presentCount');
-            const absentCount = document.getElementById('absentCount');
-            
-            // Проверяем, что элементы существуют
-            if (!attendanceBtn || !locationStatus || !presentCount || !absentCount) {
-                console.error('Не все элементы интерфейса найдены');
-                return;
-            }
-            
-            // Функция показа уведомления
-            function showNotification(message, type = 'info') {
-                const notification = document.createElement('div');
-                notification.className = 'notification';
-                notification.textContent = message;
-                notification.style.background = type === 'error' ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.8)';
-                
-                document.body.appendChild(notification);
-                
-                setTimeout(() => {
-                    notification.remove();
-                }, 3000);
-            }
-            
-            // Функция получения геолокации
-            function getLocation() {
-                return new Promise((resolve, reject) => {
-                    if (!navigator.geolocation) {
-                        reject('Геолокация не поддерживается');
-                        return;
-                    }
-                    
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            resolve({
-                                latitude: position.coords.latitude,
-                                longitude: position.coords.longitude,
-                                accuracy: position.coords.accuracy
-                            });
-                        },
-                        (error) => {
-                            let errorMessage = 'Ошибка получения геолокации';
-                            switch(error.code) {
-                                case error.PERMISSION_DENIED:
-                                    errorMessage = 'Доступ к геолокации запрещен';
-                                    break;
-                                case error.POSITION_UNAVAILABLE:
-                                    errorMessage = 'Информация о местоположении недоступна';
-                                    break;
-                                case error.TIMEOUT:
-                                    errorMessage = 'Время ожидания геолокации истекло';
-                                    break;
-                            }
-                            reject(errorMessage);
-                        },
-                        {
-                            enableHighAccuracy: true,
-                            timeout: 10000,
-                            maximumAge: 60000
-                        }
-                    );
-                });
-            }
-            
-            // Основная функция отметки
-            async function handleAttendance() {
-                try {
-                    // Блокируем кнопку и показываем загрузку
-                    attendanceBtn.disabled = true;
-                    attendanceBtn.classList.add('loading');
-                    attendanceBtn.textContent = '...';
-                    locationStatus.textContent = 'Получаем геолокацию...';
-                    
-                    // Получаем геолокацию
-                    const location = await getLocation();
-                    locationStatus.textContent = 'Геолокация получена!';
-                    
-                    // Создаем данные для отправки
-                    const attendanceData = {
-                        action: 'mark_attendance',
-                        userId: user?.id || 'unknown',
-                        firstName: user?.first_name || 'Unknown',
-                        username: user?.username || 'unknown',
-                        location: location,
-                        timestamp: new Date().toISOString(),
-                        type: 'present'
-                    };
-                    
-                    // Виброотклик
-                    if (tg.HapticFeedback) {
-                        tg.HapticFeedback.impactOccurred('medium');
-                    }
-                    
-                    // Отправляем данные в бота
-                    tg.sendData(JSON.stringify(attendanceData));
-                    
-                    // Показываем успешное уведомление
-                    showNotification('✅ Отметка принята! Геолокация отправлена');
-                    
-                    // Обновляем статистику
-                    updateStats();
-                    
-                } catch (error) {
-                    console.error('Ошибка:', error);
-                    if (tg.HapticFeedback) {
-                        tg.HapticFeedback.notificationOccurred('error');
-                    }
-                    showNotification(`❌ ${error}`, 'error');
-                    locationStatus.textContent = error;
-                } finally {
-                    // Разблокируем кнопку через 2 секунды
-                    setTimeout(() => {
-                        attendanceBtn.disabled = false;
-                        attendanceBtn.classList.remove('loading');
-                        attendanceBtn.textContent = 'Отметиться';
-                        locationStatus.textContent = 'Готово к следующей отметке';
-                    }, 2000);
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+        
+        function getLocation() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject('Геолокация не поддерживается');
+                    return;
                 }
-            }
-            
-            // Функция обновления статистики
-            function updateStats() {
-                // Увеличиваем счетчик присутствующих
+                
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        resolve({
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy
+                        });
+                    },
+                    (error) => {
+                        let errorMessage = 'Ошибка получения геолокации';
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                errorMessage = 'Доступ к геолокации запрещен';
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                errorMessage = 'Информация о местоположении недоступна';
+                                break;
+                            case error.TIMEOUT:
+                                errorMessage = 'Время ожидания геолокации истекло';
+                                break;
+                        }
+                        reject(errorMessage);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 60000
+                    }
+                );
+            });
+        }
+        
+        async function handleAttendance() {
+            try {
+                attendanceBtn.disabled = true;
+                attendanceBtn.classList.add('loading');
+                attendanceBtn.textContent = '...';
+                locationStatus.textContent = 'Получаем геолокацию...';
+                
+                const location = await getLocation();
+                locationStatus.textContent = 'Геолокация получена!';
+                
+                const locationData = {
+                    latitude: location.latitude,
+                    longitude: location.longitude,
+                    accuracy: location.accuracy
+                };
+                
+                if (tg.HapticFeedback) {
+                    tg.HapticFeedback.impactOccurred('medium');
+                }
+                
+                tg.sendData(JSON.stringify(locationData));
+                
+                showNotification('✅ Отметка принята! Геолокация отправлена');
+                
                 const currentCount = parseInt(presentCount.textContent);
                 presentCount.textContent = currentCount + 1;
                 
-                // Можно добавить запрос к API для получения актуальной статистики
-                // fetch('/api/attendance/stats').then(...)
+            } catch (error) {
+                console.error('Ошибка:', error);
+                if (tg.HapticFeedback) {
+                    tg.HapticFeedback.notificationOccurred('error');
+                }
+                showNotification(`❌ ${error}`, 'error');
+                locationStatus.textContent = error;
+            } finally {
+                setTimeout(() => {
+                    attendanceBtn.disabled = false;
+                    attendanceBtn.classList.remove('loading');
+                    attendanceBtn.textContent = 'Отметиться';
+                    locationStatus.textContent = 'Готово к следующей отметке';
+                }, 2000);
             }
-            
-            // Добавляем обработчик события на кнопку
-            attendanceBtn.addEventListener('click', handleAttendance);
-            
-            // Обработчики событий Telegram Web App
-            tg.onEvent('viewportChanged', (params) => {
-                console.log('Размер окна изменился:', params);
-            });
-            
-            tg.onEvent('themeChanged', () => {
-                console.log('Тема изменилась');
-                // Обновляем цвета интерфейса в соответствии с темой
-                document.body.style.background = tg.themeParams.bg_color || '#667eea';
-            });
-            
-            // Проверяем поддержку функций
-            if (tg.isVersionAtLeast('6.0')) {
-                console.log('Поддерживаются все необходимые функции');
-            }
-            
-            // Показываем, что приложение готово
-            tg.ready();
-            
-            // Анимация появления элементов
-            const elements = document.querySelectorAll('.fade-in');
-            elements.forEach((el, index) => {
-                el.style.animationDelay = `${index * 0.2}s`;
-            });
-            
-            // Заглушка для начальной статистики
-            presentCount.textContent = '0';
-            absentCount.textContent = '0';
-            
-            console.log('Приложение инициализировано успешно');
+        }
+        
+        attendanceBtn.addEventListener('click', handleAttendance);
+        
+        tg.onEvent('viewportChanged', (params) => {
+            console.log('Размер окна изменился:', params);
         });
-    </script>
+        
+        tg.onEvent('themeChanged', () => {
+            document.body.style.background = tg.themeParams.bg_color || '#667eea';
+        });
+        
+        if (tg.isVersionAtLeast('6.0')) {
+            console.log('Поддерживаются все необходимые функции');
+        }
+        
+        tg.ready();
+        
+        const elements = document.querySelectorAll('.fade-in');
+        elements.forEach((el, index) => {
+            el.style.animationDelay = `${index * 0.2}s`;
+        });
+        
+        presentCount.textContent = '0';
+        absentCount.textContent = '0';
+        
+        console.log('Приложение инициализировано успешно');
+    });
+</script>
 </body>
 </html>
