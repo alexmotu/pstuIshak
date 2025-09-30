@@ -285,17 +285,20 @@
                 const location = await getLocation();
                 locationStatus.textContent = 'Геолокация получена!';
                 
-                const locationData = {
-                    latitude: location.latitude,
-                    longitude: location.longitude,
-                    accuracy: location.accuracy
+                const attendanceData = {
+                    action: 'mark_attendance',
+                    location: {
+                        latitude: location.latitude,
+                        longitude: location.longitude,
+                        accuracy: location.accuracy
+                    }
                 };
                 
                 if (tg.HapticFeedback) {
                     tg.HapticFeedback.impactOccurred('medium');
                 }
                 
-                tg.sendData(JSON.stringify(locationData));
+                tg.sendData(JSON.stringify(attendanceData));
                 
                 showNotification('✅ Отметка принята! Геолокация отправлена');
                 
